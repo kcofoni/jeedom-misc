@@ -137,52 +137,26 @@ class userFunction {
 
     public static function askMe($_title, $_question, $_possibleAnswers, $_timeout, $_commandAskName) {
 
-    // créer une variable temporaire pour le ask
-    $variable = 'Ask Temporaire';
-    $dataStore = dataStore::byTypeLinkIdKey('scenario', -1, $variable);
-    if (!is_object($dataStore)) {
-        $dataStore = new dataStore();
-        $dataStore->setKey($variable);
-        $dataStore->setType('scenario');
-        $dataStore->setLink_id(-1);                                  
-    }   
-    $dataStore->setValue('');
-    $dataStore->save(); 
+        // préparation des paramètres du ask
+        $variable = 'UserFunction::askMe::Ask';
+        $options_cmd = array(
+          'question' => $_question, 
+          'answer' => $_possibleAnswers, 
+          'timeout' => $_timeout, 
+          'variable' => $variable,
+          'cmd' => $_commandAskName,
+        );
 
-    // exécution de la commande ask
-    $options_cmd = array(
-        'title' => $_title, 
-        'message' => $_question,
-        'answer' => explode(';', $_possibleAnswers), 
-        'timeout' => $_timeout, 
-        'variable' =>$variable,
-    );
-    $cmd = cmd::byString($_commandAskName);
-    $cmd->setCache('ask::variable', $variable);
-    $cmd->setCache('ask::endtime', strtotime('now') + $_timeout);
-    $cmd->setCache('ask::answer', $options_cmd['answer']);
-    $cmd->execCmd($options_cmd);
+        // exécution de la commande ask    
+        scenarioExpression::createAndExec ('action', 'ask', $options_cmd);
 
-    // attente de la réponse ou de l'épuisement du délai
-    $occurence = 0;
-    $value = '';
-    while (true) {
+        // récupération de la réponse de l'utilisateur
+        $value = '';
         $dataStore = dataStore::byTypeLinkIdKey('scenario', -1, $variable);
         if (is_object($dataStore)) {
             $value = $dataStore->getValue();
         };                         
-        if ($value != '' or $occurence > $_timeout) {
-            break;
-        };
-        $occurence++;
-        sleep(1);
-    };
 
-    // supprimer la variable et retourne la réponse
-        $dataStore = dataStore::byTypeLinkIdKey('scenario', -1, $variable);
-        $dataStore->remove();
-
-    return $value;
-
+        return $value;
     }
 }
